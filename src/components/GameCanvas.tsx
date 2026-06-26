@@ -646,6 +646,7 @@ interface GameSceneProps {
   onUpdateFlowers: (cb: (f: number) => number) => void;
   onUpdateDefeatedCount: (cb: (d: number) => number) => void;
   onUpdateBossActive?: (active: boolean) => void;
+  onUpdateBossHP?: (hp: number, maxHp: number) => void;
   gameState: string;
   setGameState: (s: 'SELECT' | 'PLAYING' | 'GAMEOVER' | 'VICTORY' | 'ENDING') => void;
   playerPosRef: React.MutableRefObject<THREE.Vector3>;
@@ -661,11 +662,18 @@ function GameScene({
   onUpdateFlowers,
   onUpdateDefeatedCount,
   onUpdateBossActive,
+  onUpdateBossHP,
   gameState,
   setGameState,
   playerPosRef,
   isPaused,
 }: GameSceneProps) {
+  const onUpdateBossActiveRef = useRef(onUpdateBossActive);
+  onUpdateBossActiveRef.current = onUpdateBossActive;
+
+  const onUpdateBossHPRef = useRef(onUpdateBossHP);
+  onUpdateBossHPRef.current = onUpdateBossHP;
+
   // Load all textures using useLoader
   const groundTexture = useLoader(THREE.TextureLoader, 'https://res.cloudinary.com/dd86koakl/image/upload/v1782440054/ground_rj20em.png');
   const playerTexture = useLoader(THREE.TextureLoader, 'https://res.cloudinary.com/dd86koakl/image/upload/v1782440053/player_mask_fvzlz7.png');
@@ -841,9 +849,14 @@ function GameScene({
   // Boss and Bullet States
   const [boss, setBoss] = useState<BossData | null>(null);
 
+  const isBossActive = boss !== null;
+  const bossHpVal = boss ? boss.hp : 0;
+  const bossMaxHpVal = boss ? boss.maxHp : 0;
+
   useEffect(() => {
-    onUpdateBossActive?.(boss !== null);
-  }, [boss, onUpdateBossActive]);
+    onUpdateBossActiveRef.current?.(isBossActive);
+    onUpdateBossHPRef.current?.(bossHpVal, bossMaxHpVal);
+  }, [isBossActive, bossHpVal, bossMaxHpVal]);
 
   const [bossBullets, setBossBullets] = useState<BossBulletData[]>([]);
   const nextBulletId = useRef(0);
@@ -1885,7 +1898,22 @@ export default function GameCanvas({ bindings, onExit }: GameCanvasProps) {
   const [isPaused, setIsPaused] = useState(false);
   const [defeatedCount, setDefeatedCount] = useState(0);
   const [bossActive, setBossActive] = useState(false);
+  const [bossHP, setBossHP] = useState(0);
+  const [bossMaxHP, setBossMaxHP] = useState(0);
+  const [showWarning, setShowWarning] = useState(false);
   const [dialogueIndex, setDialogueIndex] = useState(0);
+
+  useEffect(() => {
+    if (bossActive) {
+      setShowWarning(true);
+      const timer = setTimeout(() => {
+        setShowWarning(false);
+      }, 2000);
+      return () => clearTimeout(timer);
+    } else {
+      setShowWarning(false);
+    }
+  }, [bossActive]);
 
   // Exposed shared ref for coordinates to connect Three with the HTML controls
   const playerPosRef = useRef(new THREE.Vector3(0, 1.28, 5));
@@ -1977,6 +2005,9 @@ export default function GameCanvas({ bindings, onExit }: GameCanvasProps) {
     setHealth(5);
     setDefeatedCount(0);
     setBossActive(false);
+    setBossHP(0);
+    setBossMaxHP(0);
+    setShowWarning(false);
     setIsPaused(false);
     setDialogueIndex(0);
     playerPosRef.current.set(0, 1.28, 5); // start slightly in front of pagoda
@@ -1990,6 +2021,9 @@ export default function GameCanvas({ bindings, onExit }: GameCanvasProps) {
     setHealth(5);
     setDefeatedCount(0);
     setBossActive(false);
+    setBossHP(0);
+    setBossMaxHP(0);
+    setShowWarning(false);
     setIsPaused(false);
     setDialogueIndex(0);
     playerPosRef.current.set(0, 1.28, 5);
@@ -2036,10 +2070,23 @@ export default function GameCanvas({ bindings, onExit }: GameCanvasProps) {
               ))}
             </div>
 
-            {/* Score */}
-            <div className="flex items-center gap-1 text-white font-bold">
-              <Trophy size={14} className="text-gray-400" />
-              <span className="font-mono text-sm">{score}</span>
+            {/* Score & Boss Health Bar */}
+            <div className="flex flex-col items-center justify-center">
+              <div className="flex items-center gap-1 text-white font-bold">
+                <Trophy size={14} className="text-gray-400" />
+                <span className="font-mono text-sm">{score}</span>
+              </div>
+              {!showWarning && bossActive && (
+                <div className="mt-1 flex flex-col items-center gap-0.5 animate-fade-in">
+                  <div className="w-16 bg-black/60 border border-red-500/30 h-1.5 rounded-full overflow-hidden p-[1px] flex items-center shadow-[0_0_8px_rgba(239,68,68,0.3)]">
+                    <div
+                      className="bg-gradient-to-r from-red-600 to-orange-500 h-full rounded-full transition-all duration-300"
+                      style={{ width: `${Math.max(0, Math.min(100, (bossHP / bossMaxHP) * 100))}%` }}
+                    />
+                  </div>
+                  <span className="text-[7px] text-red-500 font-black font-sans tracking-wider uppercase">BOSS HP</span>
+                </div>
+              )}
             </div>
 
             {/* Defeated Enemies Counter */}
@@ -2186,6 +2233,10 @@ export default function GameCanvas({ bindings, onExit }: GameCanvasProps) {
                   onUpdateFlowers={(flowers) => setFlowersCollected(flowers)}
                   onUpdateDefeatedCount={(defeated) => setDefeatedCount(defeated)}
                   onUpdateBossActive={setBossActive}
+                  onUpdateBossHP={(hp, maxHp) => {
+                    setBossHP(hp);
+                    setBossMaxHP(maxHp);
+                  }}
                   gameState={gameState}
                   setGameState={setGameState}
                   playerPosRef={playerPosRef}
@@ -2206,7 +2257,7 @@ export default function GameCanvas({ bindings, onExit }: GameCanvasProps) {
             </div>
 
             {/* Boss Warning Banner */}
-            {bossActive && (
+            {showWarning && (
               <div className="absolute top-9 left-1/2 transform -translate-x-1/2 bg-red-600/90 border border-red-500 text-white font-sans font-black text-[9px] tracking-[0.2em] px-4 py-1.5 rounded-full shadow-[0_0_20px_rgba(239,68,68,0.6)] z-20 uppercase animate-bounce flex items-center gap-1.5">
                 <span className="w-2 h-2 bg-white rounded-full animate-ping" />
                 <span>WARNING: BOSS PHI TA KHON APPEARED! 👺</span>
