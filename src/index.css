@@ -1,0 +1,71 @@
+@import url('https://fonts.googleapis.com/css2?family=Kanit:wght@200;300;400;500;600;700;800;900&family=Press+Start+2P&family=Outfit:wght@200;300;400;600;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Kanit", "Outfit", sans-serif;
+  --font-game: "Press Start 2P", "Kanit", monospace;
+}
+
+body {
+  background-color: #000000;
+  color: #ffffff;
+  font-family: var(--font-sans);
+  margin: 0;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* Elegant Dark Styling Utilities */
+.elegant-radial-bg {
+  background: radial-gradient(circle at center, rgba(30, 30, 30, 0.45) 0%, rgba(0, 0, 0, 1) 100%);
+}
+
+.elegant-glass {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.elegant-glass-hover:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+@keyframes elegant-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.15)) drop-shadow(0 0 30px rgba(255, 255, 255, 0.05));
+  }
+  50% {
+    filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.3)) drop-shadow(0 0 45px rgba(255, 255, 255, 0.15));
+  }
+}
+
+.logo-glow {
+  animation: elegant-glow 4s infinite ease-in-out;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+.float-anim {
+  animation: float 5s infinite ease-in-out;
+}
+
+/* Pixel art rendering mode */
+.pixelated {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+/* Hide scrollbars but keep functionality */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
