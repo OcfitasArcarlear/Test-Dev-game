@@ -21,13 +21,31 @@ const DEFAULT_BINDINGS: KeyBindings = {
   specialSkill: 'KeyC',
 };
 
+const safeLocalStorage = {
+  getItem(key: string): string | null {
+    try {
+      return localStorage.getItem(key);
+    } catch (e) {
+      console.warn('Storage is not accessible', e);
+      return null;
+    }
+  },
+  setItem(key: string, value: string): void {
+    try {
+      localStorage.setItem(key, value);
+    } catch (e) {
+      console.warn('Storage is not accessible', e);
+    }
+  }
+};
+
 export default function App() {
   const [screen, setScreen] = useState<GameScreen>('TITLE');
   const [bindings, setBindings] = useState<KeyBindings>(DEFAULT_BINDINGS);
 
   // Load saved keybindings on mount
   useEffect(() => {
-    const saved = localStorage.getItem('dansai_bindings');
+    const saved = safeLocalStorage.getItem('dansai_bindings');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -40,7 +58,7 @@ export default function App() {
 
   const handleSaveBindings = (newBindings: KeyBindings) => {
     setBindings(newBindings);
-    localStorage.setItem('dansai_bindings', JSON.stringify(newBindings));
+    safeLocalStorage.setItem('dansai_bindings', JSON.stringify(newBindings));
   };
 
   const handleScreenNavigation = (nextScreen: GameScreen) => {

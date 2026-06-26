@@ -645,6 +645,7 @@ interface GameSceneProps {
   onUpdateScore: (cb: (s: number) => number) => void;
   onUpdateFlowers: (cb: (f: number) => number) => void;
   onUpdateDefeatedCount: (cb: (d: number) => number) => void;
+  onUpdateBossActive?: (active: boolean) => void;
   gameState: string;
   setGameState: (s: 'SELECT' | 'PLAYING' | 'GAMEOVER' | 'VICTORY' | 'ENDING') => void;
   playerPosRef: React.MutableRefObject<THREE.Vector3>;
@@ -659,6 +660,7 @@ function GameScene({
   onUpdateScore,
   onUpdateFlowers,
   onUpdateDefeatedCount,
+  onUpdateBossActive,
   gameState,
   setGameState,
   playerPosRef,
@@ -838,6 +840,11 @@ function GameScene({
 
   // Boss and Bullet States
   const [boss, setBoss] = useState<BossData | null>(null);
+
+  useEffect(() => {
+    onUpdateBossActive?.(boss !== null);
+  }, [boss, onUpdateBossActive]);
+
   const [bossBullets, setBossBullets] = useState<BossBulletData[]>([]);
   const nextBulletId = useRef(0);
 
@@ -1080,9 +1087,19 @@ function GameScene({
         // Burst gold stars
         spawnParticles(flower.position, '#fbbf24', 18);
 
-        // Check victory condition
-        if (internalFlowers.current >= 15) {
-          setGameState('VICTORY');
+        // Spawning boss when offerings are complete! (เก็บครบ 15 อันแล้วให้บอสออกมาเลย)
+        if (internalFlowers.current >= 15 && !boss && !warpActive) {
+          setBoss({
+            position: new THREE.Vector3(0, 4.5, -15),
+            hp: 20,
+            maxHp: 20,
+            state: 'idle',
+            hitFlashTimer: 0.2,
+            actionTimer: 2.0,
+            shootTimer: 0,
+            isFacingLeft: true,
+          });
+          soundEngine.playSkill();
         }
 
         // Respawn elsewhere in 4 seconds
@@ -1867,6 +1884,7 @@ export default function GameCanvas({ bindings, onExit }: GameCanvasProps) {
   const [isMuted, setIsMuted] = useState(soundEngine.getMuted());
   const [isPaused, setIsPaused] = useState(false);
   const [defeatedCount, setDefeatedCount] = useState(0);
+  const [bossActive, setBossActive] = useState(false);
   const [dialogueIndex, setDialogueIndex] = useState(0);
 
   // Exposed shared ref for coordinates to connect Three with the HTML controls
@@ -1958,6 +1976,7 @@ export default function GameCanvas({ bindings, onExit }: GameCanvasProps) {
     setFlowersCollected(0);
     setHealth(5);
     setDefeatedCount(0);
+    setBossActive(false);
     setIsPaused(false);
     setDialogueIndex(0);
     playerPosRef.current.set(0, 1.28, 5); // start slightly in front of pagoda
@@ -1970,6 +1989,7 @@ export default function GameCanvas({ bindings, onExit }: GameCanvasProps) {
     setFlowersCollected(0);
     setHealth(5);
     setDefeatedCount(0);
+    setBossActive(false);
     setIsPaused(false);
     setDialogueIndex(0);
     playerPosRef.current.set(0, 1.28, 5);
@@ -2165,6 +2185,7 @@ export default function GameCanvas({ bindings, onExit }: GameCanvasProps) {
                   onUpdateScore={(score) => setScore(score)}
                   onUpdateFlowers={(flowers) => setFlowersCollected(flowers)}
                   onUpdateDefeatedCount={(defeated) => setDefeatedCount(defeated)}
+                  onUpdateBossActive={setBossActive}
                   gameState={gameState}
                   setGameState={setGameState}
                   playerPosRef={playerPosRef}
@@ -2185,7 +2206,7 @@ export default function GameCanvas({ bindings, onExit }: GameCanvasProps) {
             </div>
 
             {/* Boss Warning Banner */}
-            {defeatedCount >= 10 && (
+            {bossActive && (
               <div className="absolute top-9 left-1/2 transform -translate-x-1/2 bg-red-600/90 border border-red-500 text-white font-sans font-black text-[9px] tracking-[0.2em] px-4 py-1.5 rounded-full shadow-[0_0_20px_rgba(239,68,68,0.6)] z-20 uppercase animate-bounce flex items-center gap-1.5">
                 <span className="w-2 h-2 bg-white rounded-full animate-ping" />
                 <span>WARNING: BOSS PHI TA KHON APPEARED! 👺</span>
